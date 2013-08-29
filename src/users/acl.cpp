@@ -96,7 +96,7 @@ int acl::add(int gid,string username){
 
   query << "SELECT * FROM `Users` WHERE `Username` = '" << username << "'";
   query.storein(res);
-  if(!res.empty()) exit(1); //name
+  if(!res.empty()) throw logic_error("User with such name is already exist");
 
   query << "INSERT INTO `Users` SET `GID` = '" << gid << "',`Username` = '" << username << "'";
   query.execute();
@@ -114,7 +114,7 @@ int acl::add(int gid,string username){
 void acl::del(int uid){
   mysqlpp::Query query = db.query();
 
-  if(!exist(uid)) exit(1); //uid
+  if(!exist(uid)) throw logic_error("User with that UID does't exist");
 
   query << "DELETE FROM `Users` WHERE `UID` = '" << uid << "'";
   query.execute();
@@ -124,12 +124,10 @@ void acl::mod(int uid,int gid,string username){
   vector <mysqlpp::Row> res;
   mysqlpp::Query query = db.query();
 
-  if(!exist(uid)) exit(1); //uid
-
   if(username != acl::username(uid)){
     query << "SELECT * FROM `Users` WHERE `Username` = '" << username << "'";
     query.storein(res);
-    if (!res.empty()) exit(1); //name
+    if (!res.empty()) throw logic_error("User with such name is already exist");
   }
 
   query << "UPDATE `Users` SET `GID` = '" << gid << "',`Username` = '" << username << "' WHERE `UID` = '" << uid << "'";
@@ -143,7 +141,7 @@ void acl::mod_eui48(int uid,string mac){
   if(mac != acl::eui48(uid)){
     query << "SELECT * FROM `EUI48` WHERE `Value` = '" << mac << "'";
     query.storein(res);
-    if(!res.empty()) exit(1); //mac
+    if(!res.empty()) throw logic_error("User with such MAC address is already exist");
   }
 
   query << "UPDATE `EUI48` SET `Value` = '" << mac << "' WHERE `UID` = '" << uid << "'";
@@ -228,7 +226,7 @@ int acl::gid(int uid){
 
   query << "SELECT `GID` FROM `Users` WHERE `UID` = '" << uid << "'";
   query.storein(res);
-  if (res.empty()) exit(1); //uid
+  if (res.empty()) throw logic_error("User with that UID does't exist");
   return atoi(res[0]["GID"]);
 }
 
@@ -238,7 +236,7 @@ string acl::username(int uid){
 
   query << "SELECT `Username` FROM `Users` WHERE `UID` = '" << uid << "'";
   query.storein(res);
-  if (res.empty()) exit(1); //uid
+  if (res.empty()) throw logic_error("User with that UID does't exist");
   return string(res[0]["Username"]);
 }
 
@@ -248,6 +246,6 @@ string acl::eui48(int uid){
 
   query << "SELECT `Value` FROM `EUI48` WHERE `UID` = '" << uid << "'";
   query.storein(res);
-  if (res.empty()) exit(1); //uid
+  if (res.empty()) throw logic_error("User with that UID does't exist");
   return string(res[0]["Value"]);
 }

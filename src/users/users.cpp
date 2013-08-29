@@ -21,67 +21,112 @@ void del(int,char**,seacl::acl&);
 void mod(int,char**,seacl::acl&);
 
 int main(int argc,char* argv[]){
-  locale::global(std::locale(""));
-  if(argc < 2) { cerr << "ERR: Too few arguments\n"; exit(1); }
+  try
+  {
+    locale::global(std::locale(""));
+    if(argc < 2) { cerr << "ERR: Too few arguments\n"; exit(1); }
 
-  int cur_arg = 0;
-  bool global_args = true;
-  string config_path = "/etc/conf.d/seacl";
-  map <string,int> cmd;
-  boost::property_tree::ptree config;
-  boost::property_tree::ptree subcfg;
-  seacl::acl users;
+    int cur_arg = 0;
+    bool global_args = true;
+    string config_path = "/etc/conf.d/seacl";
+    map <string,int> cmd;
+    boost::property_tree::ptree config;
+    boost::property_tree::ptree subcfg;
+    seacl::acl users;
   
-  cmd["show"]	= 1;
-  cmd["add"]	= 2;
-  cmd["del"]	= 3;
-  cmd["mod"]	= 4;
+    cmd["show"]	= 1;
+    cmd["add"]	= 2;
+    cmd["del"]	= 3;
+    cmd["mod"]	= 4;
 
-  cmd["-c"]			= 5;
-  cmd["--config"]	= 5;
+    cmd["-c"]			= 5;
+    cmd["--config"]	= 5;
 
-  while(global_args){
-    cur_arg++;
+    while(global_args){
+      cur_arg++;
+      switch(cmd[argv[cur_arg]])
+      {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+          global_args = false;
+          break;
+        case 5:
+          if(argc <= cur_arg+1) break;
+          config_path = argv[++cur_arg];
+          break;
+        default:
+          cerr << "ERR: Unknown command: " << argv[cur_arg] << endl;
+          exit (1);
+      }
+      if(argc <= cur_arg+1) break;
+    }
+
+    boost::property_tree::read_ini(config_path,config);
+    subcfg = config.get_child("MySQL");
+    users.connect(subcfg.get<std::string>("database"),
+                  subcfg.get<std::string>("server"),
+                  subcfg.get<std::string>("user"),
+                  subcfg.get<std::string>("password"));
+
     switch(cmd[argv[cur_arg]])
     {
       case 1:
+        show(argc-cur_arg,argv+cur_arg,users);
+        break;
       case 2:
+        add(argc-cur_arg,argv+cur_arg,users);
+        break;
       case 3:
+        del(argc-cur_arg,argv+cur_arg,users);
+        break;
       case 4:
-        global_args = false;
+        mod(argc-cur_arg,argv+cur_arg,users);
         break;
-      case 5:
-        if(argc <= cur_arg+1) break;
-        config_path = argv[++cur_arg];
-        break;
-      default:
-        cerr << "ERR: Unknown command: " << argv[cur_arg] << endl;
-        exit (1);
     }
-    if(argc <= cur_arg+1) break;
   }
 
-  boost::property_tree::read_ini(config_path,config);
-  subcfg = config.get_child("MySQL");
-  users.connect(subcfg.get<std::string>("database"),
-                subcfg.get<std::string>("server"),
-                subcfg.get<std::string>("user"),
-                subcfg.get<std::string>("password"));
-
-  switch(cmd[argv[cur_arg]])
+  catch(exception& e)
   {
-    case 1:
-      show(argc-cur_arg,argv+cur_arg,users);
-      break;
-    case 2:
-      add(argc-cur_arg,argv+cur_arg,users);
-      break;
-    case 3:
-      del(argc-cur_arg,argv+cur_arg,users);
-      break;
-    case 4:
-      mod(argc-cur_arg,argv+cur_arg,users);
-      break;
+    int code;
+    stringstream message;
+    map <string,int> excp;
+
+    excp["User with that UID does't exist"]				= 201;
+    excp["User with such name is already exist"]		= 202;
+    excp["User with such MAC address is already exist"]	= 203;
+
+    message << "ERR ";
+    code = excp[e.what()];
+    switch(code)
+    {
+      case 201:
+        message << code << ": "
+                << _("User with that UID does't exist");
+        break;
+      case 202:
+        message << code << ": "
+                << _("User with such name is already exist");
+        break;
+      case 203:
+        message << code << ": "
+                << _("User with such MAC address is already exist");
+        break;
+      default:
+        message << ++code << ": "
+                << "Non provided exception: "
+                << e.what() << endl;
+    }
+    cerr << message.str() << endl;
+
+    exit(code);
+  }
+
+  catch(...)
+  {
+    cerr << "ERR 2: Unknown error\n";
+    exit(2);
   }
 
   return EXIT_SUCCESS;
