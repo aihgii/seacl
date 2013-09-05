@@ -6,7 +6,7 @@ message ("Starting cmake")
 include (config.h.in)
 
 set (TARGET_1 users)
-set (TARGET_2 acl/eui48)
+set (TARGET_2 auth)
 
 add_subdirectory (install/pre)
 add_subdirectory (${${PROJECT_NAME}_SOURCE_DIR}/${TARGET_1})

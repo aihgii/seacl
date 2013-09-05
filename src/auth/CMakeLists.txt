@@ -6,11 +6,11 @@ set (Boost_USE_MULTITHREADED ON)
 find_package (Boost REQUIRED)
 find_package (MySQL++ REQUIRED)
 
-set (SRC eui48.cpp)
+set (SRC auth.cpp)
 
 include_directories (${Boost_INCLUDE_DIRS}
                      ${MySQL++_INCLUDE_DIRS})
 add_executable (${PROJECT_NAME} ${SRC})
 target_link_libraries (${PROJECT_NAME} ${MySQL++_LIBRARIES})
 install (TARGETS ${PROJECT_NAME}
-         DESTINATION ${INSTALL_PATH}/acl)
+         DESTINATION ${INSTALL_PATH})

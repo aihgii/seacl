@@ -83,6 +83,7 @@ int main(int argc,char* argv[]){
   {
     int code;
     map <string,int> excp;
+    ofstream file;
 
     excp["Unknown argument"]			= 100;
 
