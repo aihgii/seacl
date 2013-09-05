@@ -1,6 +1,6 @@
 #include <iomanip>
 #include <sstream>
-#include <regex.hpp>
+#include <boost/regex.hpp>
 
 #include "eui48_t.h"
 

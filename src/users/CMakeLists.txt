@@ -16,7 +16,7 @@ find_package (MySQL++ REQUIRED)
 
 set (SRC users.cpp acl.cpp eui48_t.cpp)
 
-include_directories (${Boost_INCLUDE_DIRS}/boost
+include_directories (${Boost_INCLUDE_DIRS}
                      ${MySQL++_INCLUDE_DIRS})
 add_executable (${PROJECT_NAME} ${SRC})
 target_link_libraries (${PROJECT_NAME} ${Boost_LIBRARIES} ${MySQL++_LIBRARIES})

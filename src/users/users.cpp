@@ -6,7 +6,7 @@
 #include <string>
 #include <sstream>
 #include <map>
-#include <property_tree/ini_parser.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 
 #include "acl.h"
 #include "eui48_t.h"
@@ -29,9 +29,9 @@ int main(int argc,char* argv[]){
     int cur_arg = 0;
     bool global_args = true;
     string config_path = "/etc/conf.d/seacl";
-    map <string,int> cmd;
     boost::property_tree::ptree config;
     boost::property_tree::ptree subcfg;
+    map <string,int> cmd;
     seacl::acl users;
   
     cmd["show"]	= 1;
@@ -39,7 +39,7 @@ int main(int argc,char* argv[]){
     cmd["del"]	= 3;
     cmd["mod"]	= 4;
 
-    cmd["-c"]			= 5;
+    cmd["-c"]		= 5;
     cmd["--config"]	= 5;
 
     while(global_args){
@@ -165,9 +165,10 @@ int main(int argc,char* argv[]){
 
 void show(int argc,char **argv,seacl::acl &users){
   int arg;
-  const char* short_options = "g:m";
+  const char* short_options = "g:sm";
   const struct option long_options[] = {
     {"gid",required_argument,NULL,'g'},
+    {"source",no_argument,NULL,'s'},
     {"mac",no_argument,NULL,'m'},
     {NULL,0,NULL,0}
   };
@@ -175,6 +176,9 @@ void show(int argc,char **argv,seacl::acl &users){
   users.unsetf();
   while ((arg = getopt_long(argc,argv,short_options,long_options,NULL)) != -1){
     switch(arg){
+      case 's':
+        users.setf(seacl::acl::F_SRC);
+        break;
       case 'm':
         users.setf(seacl::acl::F_EUI48);
         break;

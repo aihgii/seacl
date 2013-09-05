@@ -31,7 +31,7 @@ bool acl::connect(std::string database,
                   std::string user,
                   std::string password)
 {
-  db.connect(database.c_str(),server.c_str(),user.c_str(),password.c_str());
+  return db.connect(database.c_str(),server.c_str(),user.c_str(),password.c_str());
 }
 
 wstring acl::get_wstring(const char *c_str){
@@ -77,7 +77,7 @@ acl::wTable* acl::get_table(mysqlpp::UseQueryResult &res){
   return table;
 }
 
-void acl::setf(acl::flags f){
+void acl::setf(acl::flag f){
   table_flags |= f;
 }
 
@@ -85,7 +85,7 @@ void acl::unsetf(){
   table_flags = 0;
 }
 
-void acl::unsetf(acl::flags f){
+void acl::unsetf(acl::flag f){
   table_flags -= f;
 }
 
@@ -105,6 +105,8 @@ int acl::add(int gid,string username){
   query.storein(res);
   uid = atoi(res[0]["UID"].c_str());
 
+  query << "INSERT INTO `Source` SET `UID` = '" << uid << "'";
+  query.execute();
   query << "INSERT INTO `EUI48` SET `UID` = '" << uid << "'";
   query.execute();
 
@@ -160,6 +162,7 @@ bool acl::exist(int uid){
 }
 
 string acl::table(){
+  int i;
   int table_width;
   int table_size;
   vector <int> column_width;
@@ -168,9 +171,11 @@ string acl::table(){
 
   mysqlpp::Query query = db.query();
   query << "SELECT `Users`.*";
-  if(table_flags & F_EUI48 == F_EUI48) query << ",`EUI48`.`Value`";
+  if((table_flags & F_SRC) == F_SRC) query << ",`Source`.`Value`";
+  if((table_flags & F_EUI48) == F_EUI48) query << ",`EUI48`.`Value`";
   query << " FROM `Users`";
-  if(table_flags & F_EUI48 == F_EUI48) query << " LEFT JOIN `EUI48` ON (`Users`.`UID` = `EUI48`.`UID`)";
+  if((table_flags & F_SRC) == F_SRC) query << " LEFT JOIN `Source` ON (`Users`.`UID` = `Source`.`UID`)";
+  if((table_flags & F_EUI48) == F_EUI48) query << " LEFT JOIN `EUI48` ON (`Users`.`UID` = `EUI48`.`UID`)";
 
   mysqlpp::UseQueryResult res = query.use();
   wTable *table = get_table(res);
@@ -179,14 +184,16 @@ string acl::table(){
   header.push_back( get_wstring(_("UID")) );
   header.push_back( get_wstring(_("GID")) );
   header.push_back( get_wstring(_("Username")) );
-  if(table_flags & F_EUI48 == F_EUI48)
+  if((table_flags & F_SRC) == F_SRC)
+    header.push_back( get_wstring(_("Source")) );
+  if((table_flags & F_EUI48) == F_EUI48)
     header.push_back( get_wstring(_("MAC address")) );
 
   for (auto it = header.begin(); it < header.end(); it++)
     column_width.push_back(it->length());
 
   for (auto it = table->begin(); it < table->end(); it++)
-    for (int i = 0; i < column_width.size(); i++)
+    for (i = 0; i < column_width.size(); i++)
       if (it->at(i).length() > column_width[i]) column_width[i] = it->at(i).length();
 
   table_width = SPC;
@@ -194,21 +201,33 @@ string acl::table(){
     table_width += *it + SPC*2;
   sep << std::setfill(wchar_t(DELIM)) << setw(table_width) << '\n' << std::setfill(wchar_t(' '));
 
+  i = 0;
   result << sep.str();
-  result << setw(SPC+column_width[0]) << header[0]
-         << setw(SPC*2+column_width[1]) << header[1] << setw(SPC*2) << ' '
-         << left
-         << setw(column_width[2]+SPC*2) << header[2];
-  if(table_flags & F_EUI48 == F_EUI48) result << header[3];
+  result << setw(SPC+column_width[i]) << header[i];
+  result << setw(SPC*2+column_width[++i]);
+  result << header[i] << setw(SPC*2) << ' ';
+  result << left << setw(column_width[++i]+SPC*2);
+  result << header[i];
+  if((table_flags & F_SRC) == F_SRC){
+    result << setw(column_width[++i]+SPC*2);
+    result << header[i];}
+  if((table_flags & F_EUI48) == F_EUI48)
+    result << header[++i];
   result << endl << sep.str();
 
   while (table->size()){
+    i = 0;
     result << right
-           << setw(SPC+column_width[0]) << table->front().at(0) << setw(SPC*2) << ' '
-           << setw(column_width[1]) << table->front().at(1) << setw(SPC*2) << ' '
-           << left
-           << setw(column_width[2]) << table->front().at(2) << setw(SPC*2) << ' ';
-    if(table_flags & F_EUI48 == F_EUI48) result << table->front().at(3);
+           << setw(SPC+column_width[i]) << table->front().at(i) << setw(SPC*2) << ' ';
+    result << setw(column_width[++i]);
+    result << table->front().at(i) << setw(SPC*2) << ' ';
+    result << left << setw(column_width[++i]);
+    result << table->front().at(i) << setw(SPC*2) << ' ';
+    if((table_flags & F_SRC) == F_SRC){
+      result << setw(column_width[++i]);
+      result << table->front().at(i) << setw(SPC*2) << ' ';}
+    if((table_flags & F_EUI48) == F_EUI48)
+      result << table->front().at(++i);
     result << endl;
     table->pop_front();
   }
