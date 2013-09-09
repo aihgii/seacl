@@ -9,8 +9,6 @@
 
 using namespace std;
 
-void update_source(int,string,mysqlpp::Connection&);
-
 int main(int argc,char* argv[]){
   try
   {
@@ -20,7 +18,7 @@ int main(int argc,char* argv[]){
     boost::property_tree::ptree config;
     boost::property_tree::ptree subcfg;
     map <string,int> arg;
-    string src,mac;
+    string mac;
     mysqlpp::Connection db;
     mysqlpp::Query query = db.query();
     vector <mysqlpp::Row> res;
@@ -56,16 +54,13 @@ int main(int argc,char* argv[]){
     while(true){
       fgets(buf,BUF_SIZE,stdin);
 
-      src = strtok(buf,"\n ");
-      mac = strtok(NULL,"\n ");
+      mac = strtok(buf,"\n");
 
       query << "SELECT `Users`.`UID` FROM `Users`,`EUI48` WHERE ( `Users`.`UID` = `EUI48`.`UID` AND `EUI48`.`Value` = '" << mac << "' AND `Users`.`GID` = '" << gid << "' )";
       res.clear();
       query.storein(res);
-      if (!res.empty())
-      {
+      if (!res.empty()){
         uid = atoi(res[0]["UID"]);
-        update_source(uid,src,db);
         fprintf (stdout,"OK user=uid_%d\n",uid);
       }
       else
@@ -103,26 +98,4 @@ int main(int argc,char* argv[]){
     exit(2);
   }
 
-}
-
-void update_source(int uid,string src,mysqlpp::Connection &db){
-  mysqlpp::Query query = db.query();
-  vector <mysqlpp::Row> res;
-
-  while(true)
-  {
-    query << "SELECT `UID` FROM `Source` WHERE `Value` = '" << src << "'";
-    res.clear();
-    query.storein(res);
-    if (res.empty()){
-      query << "UPDATE `Source` SET `Value` = '" << src << "' WHERE `UID` = '" << uid << "'";
-      query.execute();
-      break;
-    }
-    else{
-      if (atoi(res[0]["UID"]) == uid) break;
-      query << "UPDATE `Source` SET `Value` = NULL WHERE `UID` = '" << res[0]["UID"] << "'";
-      query.execute();
-    }
-  }
 }
