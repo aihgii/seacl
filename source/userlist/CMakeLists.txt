@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(${TARGET_3}) 
+project(${TARGET_4}) 
 
 set (Boost_USE_STATIC_LIBS OFF)
 set (Boost_USE_MULTITHREADED ON)

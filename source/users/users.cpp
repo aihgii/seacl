@@ -7,13 +7,17 @@
 #include <sstream>
 #include <map>
 #include <boost/property_tree/ini_parser.hpp>
+#include <libseacl.h>
 
-#include "acl.h"
 #include "eui48_t.h"
 
+#define SPC 1
+#define DELIM '-'
 #define _(s) gettext(s)
 
 using namespace std;
+
+wstring get_wstring(const char *);
 
 void show(int,char**,seacl::acl&);
 void add(int,char**,seacl::acl&);
@@ -24,6 +28,8 @@ int main(int argc,char* argv[]){
   try
   {
     locale::global(std::locale(""));
+    ios::sync_with_stdio(false);
+
     if(argc < 2) throw invalid_argument("Too few arguments");
 
     int cur_arg = 0;
@@ -163,29 +169,99 @@ int main(int argc,char* argv[]){
   return EXIT_SUCCESS;
 }
 
+wstring get_wstring(const char *c_str){
+  size_t count;
+  wchar_t *buf;
+  wstring wstr;
+
+  count = mbsrtowcs(NULL,&c_str,0,NULL);
+  buf = new wchar_t [count];
+  mbsrtowcs(buf,&c_str,count,NULL);
+  wstr = wstring(buf,count);
+  delete buf;
+
+  return wstr;
+}
+
 void show(int argc,char **argv,seacl::acl &users){
-  int arg;
-  const char* short_options = "g:sm";
+  int i,arg,
+      table_width,
+      table_size;
+  bool show_mac = false;
+  vector <int> column_width;
+  stringstream sep;
+  seacl::acl::Row header;
+  seacl::acl::Table* table;
+
+  const char* short_options = "g:m";
   const struct option long_options[] = {
     {"gid",required_argument,NULL,'g'},
-    {"source",no_argument,NULL,'s'},
     {"mac",no_argument,NULL,'m'},
-    {NULL,0,NULL,0}
-  };
-
+    {NULL,0,NULL,0} };
   users.unsetf();
   while ((arg = getopt_long(argc,argv,short_options,long_options,NULL)) != -1){
     switch(arg){
-      case 's':
-        users.setf(seacl::acl::F_SRC);
-        break;
       case 'm':
         users.setf(seacl::acl::F_EUI48);
+        show_mac = true;
         break;
     }
   }
 
-  cout << users.table();
+  table = users.table();
+  table_size = table->size();
+
+  header.push_back( _("UID") );
+  header.push_back( _("GID") );
+  header.push_back( _("Username") );
+  if(show_mac)
+    header.push_back( _("MAC address") );
+
+  for(auto it = header.begin(); it < header.end(); it++)
+    column_width.push_back(get_wstring(*it).length());
+
+  for(auto it = table->begin(); it < table->end(); it++)
+    for (i = 0; i < column_width.size(); i++)
+      if (get_wstring(it->at(i)).length() > column_width[i]) column_width[i] = get_wstring(it->at(i)).length();
+
+  table_width = SPC;
+  for (auto it = column_width.begin(); it < column_width.end(); it++)
+    table_width += *it + SPC*2;
+  sep << std::setfill(DELIM) << setw(table_width) << '\n';
+
+  i = 0;
+  cout << sep.str() << flush;
+  wcout << setw(SPC+column_width[i]) << get_wstring(header[i]);
+  wcout << setw(SPC*2+column_width[++i]);
+  wcout << get_wstring(header[i]) << setw(SPC*2) << ' ';
+  wcout << left << setw(column_width[++i]+SPC*2);
+  wcout << get_wstring(header[i]);
+  if(show_mac)
+    wcout << get_wstring(header[++i]);
+  wcout.flush();
+  cout << endl << sep.str();
+
+  while (!table->empty()){
+    i = 0;
+    cout << right
+         << setw(SPC+column_width[i]) << table->front().at(i) << setw(SPC*2) << ' ';
+    delete table->front().at(i);
+    cout << setw(column_width[++i]);
+    cout << table->front().at(i) << setw(SPC*2) << ' ' << flush;
+    delete table->front().at(i);
+    wcout << left << setw(column_width[++i]);
+    wcout << get_wstring(table->front().at(i)) << setw(SPC*2) << ' ' << flush;
+    delete table->front().at(i);
+    if(show_mac){
+      cout << table->front().at(++i);
+      delete table->front().at(i);}
+    cout << endl;
+    table->pop_front();
+  }
+  delete table;
+
+  cout << sep.str();
+  cout << _("Users in table: ") << table_size << endl;
 }
 
 void add(int argc,char **argv,seacl::acl &users){

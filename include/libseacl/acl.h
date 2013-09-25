@@ -12,17 +12,9 @@ namespace seacl {
   {
   public:
     typedef uint8_t flag;
-  protected:
-    typedef std::vector <std::wstring> wRow;
-    typedef std::deque  <wRow>         wTable;
+    typedef std::vector <const char*> Row;
+    typedef std::deque  <Row>         Table;
 
-    mysqlpp::Connection db;
-    flag table_flags;
-
-    std::wstring get_wstring (const char *);
-    std::string  get_string  (const wchar_t *);
-    wTable*      get_table   (mysqlpp::UseQueryResult &);
-  public:
     acl();
     acl(std::string,
         std::string,
@@ -35,8 +27,7 @@ namespace seacl {
                  std::string,
                  std::string);
 
-    static const flag F_SRC	= 1 << 0;
-    static const flag F_EUI48	= 1 << 1;
+    static const flag F_EUI48	= 1 << 0;
 
     void setf(flag);
     void unsetf();
@@ -49,9 +40,12 @@ namespace seacl {
 
     bool exist(int);
     int gid(int);
-    std::string table();
     std::string username(int);
     std::string eui48(int);
+    Table* table();
+  protected:
+    mysqlpp::Connection db;
+    flag table_flags;
   };
 
 }
