@@ -30,9 +30,10 @@ int main(int argc,char* argv[]){
   try
   {
     int gid = -1;
-    string config_path = "/etc/conf.d/seacl";
+    string config_path = "/etc/seacl/seacl.conf";
     boost::property_tree::ptree config;
     boost::property_tree::ptree subcfg;
+    boost::property_tree::ptree myauth;
     map <string,int> arg;
     mysqlpp::Connection db;
     mysqlpp::Query query = db.query();
@@ -61,10 +62,11 @@ int main(int argc,char* argv[]){
 
     boost::property_tree::read_ini(config_path,config);
     subcfg = config.get_child("MySQL");
-    db.connect(subcfg.get<std::string>("database").c_str(),
-               subcfg.get<std::string>("server").c_str(),
-               subcfg.get<std::string>("user").c_str(),
-               subcfg.get<std::string>("password").c_str());
+    boost::property_tree::read_ini(subcfg.get<std::string>("auth"),myauth);
+    db.connect(myauth.get<std::string>("database").c_str(),
+               myauth.get<std::string>("server").c_str(),
+               myauth.get<std::string>("user").c_str(),
+               myauth.get<std::string>("password").c_str());
 
     query << "SELECT `UID` FROM `Users`";
     if(gid >= 0)

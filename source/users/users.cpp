@@ -53,9 +53,10 @@ int main(int argc,char* argv[]){
 
     int cur_arg = 0;
     bool global_args = true;
-    string config_path = "/etc/conf.d/seacl";
+    string config_path = "/etc/seacl/seacl.conf";
     boost::property_tree::ptree config;
     boost::property_tree::ptree subcfg;
+    boost::property_tree::ptree myauth;
     map <string,int> cmd;
     seacl::acl users;
   
@@ -89,10 +90,11 @@ int main(int argc,char* argv[]){
 
     boost::property_tree::read_ini(config_path,config);
     subcfg = config.get_child("MySQL");
-    users.connect(subcfg.get<std::string>("database"),
-                  subcfg.get<std::string>("server"),
-                  subcfg.get<std::string>("user"),
-                  subcfg.get<std::string>("password"));
+    boost::property_tree::read_ini(subcfg.get<std::string>("auth"),myauth);
+    users.connect(myauth.get<std::string>("database"),
+                  myauth.get<std::string>("server"),
+                  myauth.get<std::string>("user"),
+                  myauth.get<std::string>("password"));
 
     switch(cmd[argv[cur_arg]])
     {
