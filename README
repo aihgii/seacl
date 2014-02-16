@@ -1,1 +1,8 @@
- 
+NAME
+    SEACL - Squid's External Access Control List management tool
+
+DESCRIPTION
+    SEACL is a free (GPL) plugin for Squid. It lets you use MySQL
+    for store user base and apply group access policies for users.
+    Also provides a library for database management and minimal
+    console interface.
